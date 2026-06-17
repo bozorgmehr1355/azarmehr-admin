@@ -1,14 +1,13 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 
 const NotificationContext = createContext();
-
 export const useNotifications = () => useContext(NotificationContext);
 
 export const NotificationProvider = ({ children, currentUserId }) => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
   const SUPABASE_URL = "https://<project>.supabase.co";
-  const SUPABASE_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY; // یا مستقیماً مقدار
+  const SUPABASE_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY;
 
   const fetchNotifications = useCallback(async () => {
     setLoading(true);
@@ -34,10 +33,8 @@ export const NotificationProvider = ({ children, currentUserId }) => {
   }, [currentUserId]);
 
   useEffect(() => {
-    // بار اول
     fetchNotifications();
-    // سپس هر 30s
-    const intervalId = setInterval(fetchNotifications, 30_000);
+    const intervalId = setInterval(fetchNotifications, 30000);
     return () => clearInterval(intervalId);
   }, [fetchNotifications]);
 
