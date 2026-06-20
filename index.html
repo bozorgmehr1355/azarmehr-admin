@@ -1573,7 +1573,13 @@ function CRMModule({ me, showToast }) {
     } catch { showToast("خطا","error"); }
     finally { setLoading(false); }
   };
-  useEffect(() => { load(); },[]);
+  useEffect(() => {
+    load();
+    const iv = setInterval(() => {
+      api("GET","crm_orders?order=created_at.desc").then(o => { if(o) setOrders(o); }).catch(()=>{});
+    }, 30000);
+    return () => clearInterval(iv);
+  },[]);
 
   const del = async (id) => {
     if (!confirm("حذف این مشتری؟")) return;
