@@ -1625,6 +1625,7 @@ function CRMModule({ me, showToast }) {
             ))}
           </div>
           {view==="customers" && <Btn label="مشتری جدید" icon="plus" onClick={() => { setEditCust(null); setShowForm(true); }} />}
+          {view==="orders" && <Btn label="بارگذاری مجدد" icon="refresh" onClick={load} />}
         </div>
       </div>
 
