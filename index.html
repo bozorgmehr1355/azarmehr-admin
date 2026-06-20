@@ -36,6 +36,16 @@
 <script type="text/babel">
 const { useState, useEffect, useRef, useCallback } = React;
 
+function useWindowWidth() {
+  const [w, setW] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
+  useEffect(() => {
+    const h = () => setW(window.innerWidth);
+    window.addEventListener("resize", h);
+    return () => window.removeEventListener("resize", h);
+  }, []);
+  return w;
+}
+
 /* ═══════════════════════════════════════ CONFIG ══════════════════════════════════════ */
 const SUPA_URL = "https://apscmdspkitpwzhizgkq.supabase.co";
 const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFwc2NtZHNwa2l0cHd6aGl6Z2txIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE0MDc3NDgsImV4cCI6MjA5Njk4Mzc0OH0.LC_e1vafGe2KtTrWsb0mjIVIrQoqyvA46THD83HkhMo";
@@ -227,6 +237,8 @@ function Ic({ name, size=18, color=C.textMuted, style }) {
     login:     <><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></>,
     download:  <><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></>,
     shield:    <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></>,
+    menu:      <><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></>,
+    close:     <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>,
   };
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
@@ -2810,7 +2822,13 @@ function AdminLogin({ onLogin }) {
     <div style={{ minHeight:"100vh", background:C.bg, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:FF, direction:"rtl" }}>
       <div style={{ width:380, padding:36, background:C.surface, borderRadius:20, border:`1px solid ${C.border}`, boxShadow:"0 20px 60px #0008" }}>
         <div style={{ textAlign:"center", marginBottom:28 }}>
-          <div style={{ width:64, height:64, borderRadius:16, background:C.primaryDim, border:`2px solid ${C.primary}`, display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 14px", fontSize:28 }}>🦂</div>
+          <div style={{ width:80, height:80, display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 14px" }}>
+            <svg viewBox="0 0 1597.09 1256.73" style={{ width:80, height:80 }} xmlns="http://www.w3.org/2000/svg">
+              <path fill="#D1D3D4" d="M32.12,800.55c5.51,37.78,23.61,71.79,52.02,101.42c24.63,25.68,57.02,48.03,95.7,66.58c124.95,59.95,315.53,80.27,521.98,45.1c161.02-27.41,303.14-83.72,406.19-153.93c15.45-10.53,4.94-37.08-12.43-31.46c-67.51,21.84-142.36,40.31-221.71,53.83c-302.01,51.45-562.33,13.23-608.42-84.92c-0.42-0.91-0.82-1.81-1.2-2.72c-2.55-5.95-4.31-12.13-5.23-18.53c-16.65-113.64,231.63-250.37,554.57-305.36c110.39-18.8,215.21-25.62,306.08-21.88c-111.74-43.28-245.77-68.52-389.88-68.52c-104.25,0-203.22,13.21-292.3,36.91C183.05,499.71,10.79,654.94,32.12,800.55"/>
+              <path fill="#D1D3D4" d="M471.02,1137.2c111.72,43.28,245.7,68.48,389.77,68.48c104.42,0,203.56-13.23,292.74-37.02c254.21-82.7,426.22-237.85,404.88-383.38c-5.51-37.75-23.61-71.79-52.02-101.38c-24.61-25.68-57-48.05-95.66-66.62c-124.97-59.95-315.51-80.28-522-45.1c-160.99,27.43-303.14,83.72-406.17,153.95c-15.45,10.51-4.96,37.06,12.41,31.44c67.53-21.84,142.38-40.29,221.73-53.81c302-51.45,562.33-13.21,608.44,84.9c0.4,0.91,0.78,1.81,1.18,2.72c2.53,5.97,4.3,12.16,5.23,18.53c16.65,113.64-231.63,250.37-554.57,305.38C666.63,1134.1,561.83,1140.91,471.02,1137.2"/>
+              <path fill="#FDB913" d="M958.52,180.31c0,78.1-63.33,141.43-141.43,141.43s-141.43-63.33-141.43-141.43S738.99,38.88,817.09,38.88C895.19,38.88,958.52,102.21,958.52,180.31"/>
+            </svg>
+          </div>
           <h1 style={{ fontSize:20, fontWeight:700, color:C.text, marginBottom:4 }}>آذرمهر صنعت</h1>
           <p style={{ fontSize:12, color:C.textDim }}>پنل مدیریت گروه محصولات غذایی عقرب</p>
         </div>
@@ -3390,13 +3408,37 @@ const NAV = [
   ]},
 ];
 
-function Sidebar({ tab, setTab, me, onLogout }) {
+function Sidebar({ tab, setTab, me, onLogout, isMobile, open, onClose }) {
   const isSA = me?.role==="super_admin";
+  const handleNav = (key) => { setTab(key); if(isMobile && onClose) onClose(); };
+  const asideStyle = isMobile ? {
+    position:"fixed", right:0, top:0, zIndex:200,
+    width:260, height:"100vh",
+    background:C.surface, borderLeft:`1px solid ${C.border}`,
+    display:"flex", flexDirection:"column", flexShrink:0, overflow:"hidden",
+    transform: open ? "translateX(0)" : "translateX(110%)",
+    transition:"transform 0.28s ease",
+    boxShadow:"-6px 0 32px #0008"
+  } : {
+    width:220, height:"100vh", background:C.surface, borderLeft:`1px solid ${C.border}`,
+    display:"flex", flexDirection:"column", flexShrink:0, overflow:"hidden"
+  };
   return (
-    <aside style={{ width:220, height:"100vh", background:C.surface, borderLeft:`1px solid ${C.border}`, display:"flex", flexDirection:"column", flexShrink:0, overflow:"hidden" }}>
+    <aside style={asideStyle}>
+      {isMobile && (
+        <button onClick={onClose} style={{ position:"absolute", top:14, left:14, background:"transparent", border:"none", cursor:"pointer", padding:4, display:"flex", alignItems:"center", zIndex:10 }}>
+          <Ic name="close" size={20} color={C.textDim} />
+        </button>
+      )}
       <div style={{ padding:"20px 16px 16px", borderBottom:`1px solid ${C.border}` }}>
         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-          <div style={{ width:36, height:36, borderRadius:10, background:C.primaryDim, border:`1.5px solid ${C.primary}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18 }}>🦂</div>
+          <div style={{ width:36, height:36, display:"flex", alignItems:"center", justifyContent:"center" }}>
+            <svg viewBox="0 0 1597.09 1256.73" style={{ width:36, height:36 }} xmlns="http://www.w3.org/2000/svg">
+              <path fill="#D1D3D4" d="M32.12,800.55c5.51,37.78,23.61,71.79,52.02,101.42c24.63,25.68,57.02,48.03,95.7,66.58c124.95,59.95,315.53,80.27,521.98,45.1c161.02-27.41,303.14-83.72,406.19-153.93c15.45-10.53,4.94-37.08-12.43-31.46c-67.51,21.84-142.36,40.31-221.71,53.83c-302.01,51.45-562.33,13.23-608.42-84.92c-0.42-0.91-0.82-1.81-1.2-2.72c-2.55-5.95-4.31-12.13-5.23-18.53c-16.65-113.64,231.63-250.37,554.57-305.36c110.39-18.8,215.21-25.62,306.08-21.88c-111.74-43.28-245.77-68.52-389.88-68.52c-104.25,0-203.22,13.21-292.3,36.91C183.05,499.71,10.79,654.94,32.12,800.55"/>
+              <path fill="#D1D3D4" d="M471.02,1137.2c111.72,43.28,245.7,68.48,389.77,68.48c104.42,0,203.56-13.23,292.74-37.02c254.21-82.7,426.22-237.85,404.88-383.38c-5.51-37.75-23.61-71.79-52.02-101.38c-24.61-25.68-57-48.05-95.66-66.62c-124.97-59.95-315.51-80.28-522-45.1c-160.99,27.43-303.14,83.72-406.17,153.95c-15.45,10.51-4.96,37.06,12.41,31.44c67.53-21.84,142.38-40.29,221.73-53.81c302-51.45,562.33-13.21,608.44,84.9c0.4,0.91,0.78,1.81,1.18,2.72c2.53,5.97,4.3,12.16,5.23,18.53c16.65,113.64-231.63,250.37-554.57,305.38C666.63,1134.1,561.83,1140.91,471.02,1137.2"/>
+              <path fill="#FDB913" d="M958.52,180.31c0,78.1-63.33,141.43-141.43,141.43s-141.43-63.33-141.43-141.43S738.99,38.88,817.09,38.88C895.19,38.88,958.52,102.21,958.52,180.31"/>
+            </svg>
+          </div>
           <div>
             <div style={{ fontSize:13, fontWeight:700, color:C.text }}>آذرمهر صنعت</div>
             <div style={{ fontSize:10, color:C.textDim }}>گروه محصولات غذایی عقرب</div>
@@ -3411,7 +3453,7 @@ function Sidebar({ tab, setTab, me, onLogout }) {
               const locked = item.saOnly && !isSA;
               const active = tab===item.key;
               return (
-                <button key={item.key} onClick={() => !locked && setTab(item.key)} style={{
+                <button key={item.key} onClick={() => !locked && handleNav(item.key)} style={{
                   display:"flex", alignItems:"center", gap:10, width:"100%", padding:"9px 12px",
                   borderRadius:10, border:"none", cursor:locked?"not-allowed":"pointer", fontFamily:FF,
                   fontSize:13, marginBottom:2, textAlign:"right",
@@ -3459,16 +3501,19 @@ function ToastContainer({ toasts }) {
 }
 
 function App() {
-  const [me, setMe]       = useState(null);
-  const [tab, setTab]     = useState("dashboard");
-  const [toasts, setToasts] = useState([]);
+  const [me, setMe]           = useState(null);
+  const [tab, setTab]         = useState("dashboard");
+  const [toasts, setToasts]   = useState([]);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const winW = useWindowWidth();
+  const isMobile = winW < 900;
 
   const showToast = (msg, type="success") => {
     const id = Date.now();
     setToasts(t => [...t, { id, msg, type }]);
     setTimeout(() => setToasts(t => t.filter(x => x.id!==id)), 3500);
   };
-  const logout = () => { setMe(null); setTab("dashboard"); };
+  const logout = () => { setMe(null); setTab("dashboard"); setSidebarOpen(false); };
 
   if (!me) return <LoginScreen onLogin={setMe} />;
   if (me.type==="customer") return <CustomerPortal me={me} onLogout={logout} />;
@@ -3488,8 +3533,27 @@ function App() {
 
   return (
     <div style={{ display:"flex", position:"fixed", inset:0, background:C.bg, fontFamily:FF, direction:"rtl" }}>
-      <Sidebar tab={tab} setTab={setTab} me={me} onLogout={logout} />
-      <main style={{ flex:1, padding:24, overflowY:"auto", overflowX:"hidden", minWidth:0 }}>
+      {isMobile && sidebarOpen && (
+        <div onClick={() => setSidebarOpen(false)}
+             style={{ position:"fixed", inset:0, background:"#000a", zIndex:150 }} />
+      )}
+      <Sidebar tab={tab} setTab={setTab} me={me} onLogout={logout}
+               isMobile={isMobile} open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <main style={{ flex:1, padding:isMobile?12:24, overflowY:"auto", overflowX:"hidden", minWidth:0 }}>
+        {isMobile && (
+          <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:14, paddingBottom:12, borderBottom:`1px solid ${C.border}` }}>
+            <button onClick={() => setSidebarOpen(true)}
+                    style={{ background:"transparent", border:"none", cursor:"pointer", padding:6, display:"flex", alignItems:"center", borderRadius:8 }}>
+              <Ic name="menu" size={22} color={C.text} />
+            </button>
+            <svg viewBox="0 0 1597.09 1256.73" style={{ width:26, height:26 }} xmlns="http://www.w3.org/2000/svg">
+              <path fill="#D1D3D4" d="M32.12,800.55c5.51,37.78,23.61,71.79,52.02,101.42c24.63,25.68,57.02,48.03,95.7,66.58c124.95,59.95,315.53,80.27,521.98,45.1c161.02-27.41,303.14-83.72,406.19-153.93c15.45-10.53,4.94-37.08-12.43-31.46c-67.51,21.84-142.36,40.31-221.71,53.83c-302.01,51.45-562.33,13.23-608.42-84.92c-0.42-0.91-0.82-1.81-1.2-2.72c-2.55-5.95-4.31-12.13-5.23-18.53c-16.65-113.64,231.63-250.37,554.57-305.36c110.39-18.8,215.21-25.62,306.08-21.88c-111.74-43.28-245.77-68.52-389.88-68.52c-104.25,0-203.22,13.21-292.3,36.91C183.05,499.71,10.79,654.94,32.12,800.55"/>
+              <path fill="#D1D3D4" d="M471.02,1137.2c111.72,43.28,245.7,68.48,389.77,68.48c104.42,0,203.56-13.23,292.74-37.02c254.21-82.7,426.22-237.85,404.88-383.38c-5.51-37.75-23.61-71.79-52.02-101.38c-24.61-25.68-57-48.05-95.66-66.62c-124.97-59.95-315.51-80.28-522-45.1c-160.99,27.43-303.14,83.72-406.17,153.95c-15.45,10.51-4.96,37.06,12.41,31.44c67.53-21.84,142.38-40.29,221.73-53.81c302-51.45,562.33-13.21,608.44,84.9c0.4,0.91,0.78,1.81,1.18,2.72c2.53,5.97,4.3,12.16,5.23,18.53c16.65,113.64-231.63,250.37-554.57,305.38C666.63,1134.1,561.83,1140.91,471.02,1137.2"/>
+              <path fill="#FDB913" d="M958.52,180.31c0,78.1-63.33,141.43-141.43,141.43s-141.43-63.33-141.43-141.43S738.99,38.88,817.09,38.88C895.19,38.88,958.52,102.21,958.52,180.31"/>
+            </svg>
+            <span style={{ fontSize:15, fontWeight:700, color:C.text }}>آذرمهر صنعت</span>
+          </div>
+        )}
         {modules[tab] || modules.dashboard}
       </main>
       <ToastContainer toasts={toasts} />
