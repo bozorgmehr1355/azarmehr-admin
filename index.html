@@ -23,6 +23,11 @@
     input[type=number]::-webkit-inner-spin-button,
     input[type=number]::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
     input[type=number] { -moz-appearance:textfield; appearance:textfield; }
+    .orders-mobile { display:none; }
+    @media (max-width: 768px) {
+      .orders-desktop { display:none !important; }
+      .orders-mobile { display:flex !important; }
+    }
     @media print {
       body * { visibility:hidden; }
       #invoice-print, #invoice-print * { visibility:visible; }
@@ -2090,6 +2095,14 @@ function OrdersModule({ me, showToast }) {
 
   useEffect(() => { load(); }, []);
 
+  useEffect(() => {
+    load();
+    const iv = setInterval(() => {
+      api("GET","crm_orders?order=created_at.desc").then(o => { if(o) setOrders(o); }).catch(()=>{});
+    }, 10000);
+    return () => clearInterval(iv);
+  }, []);
+
   const custMap = Object.fromEntries((customers||[]).map(c=>[c.id,c]));
 
   const exportOrdersCSV = () => {
@@ -2150,7 +2163,8 @@ function OrdersModule({ me, showToast }) {
           <h2 style={{ fontSize:20, color:C.text, fontWeight:600, marginBottom:2 }}>مدیریت سفارشات</h2>
           <p style={{ fontSize:12, color:C.textDim }}>{fa(orders.length)} سفارش کل</p>
         </div>
-        <div style={{ display:"flex", gap:8 }}>
+        <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+          <Btn label="بارگذاری مجدد" icon="refresh" small outline onClick={load} />
           <Btn label="خروجی CSV" icon="download" small outline onClick={exportOrdersCSV} />
           <Btn label="ثبت سفارش جدید" icon="plus" onClick={() => setNewOrder(true)} />
         </div>
@@ -2183,35 +2197,61 @@ function OrdersModule({ me, showToast }) {
         <span style={{ fontSize:11, color:C.textDim, whiteSpace:"nowrap" }}>{fa(filtered.length)} سفارش</span>
       </div>
 
-      {/* لیست */}
-      <div style={{ background:C.surface, borderRadius:14, border:`1px solid ${C.border}`, overflow:"hidden" }}>
-        <div style={{ display:"grid", gridTemplateColumns:"60px 2fr 110px 90px 130px 130px 100px" }}>
-          {["#","مشتری","تاریخ","نوع","مبلغ","وضعیت",""].map((h,i)=>(
-            <div key={i} style={{ padding:"10px 14px", fontSize:11, color:C.textMuted, fontWeight:700, borderBottom:`1px solid ${C.border}` }}>{h}</div>
-          ))}
-          {filtered.length===0
-            ? <div style={{ gridColumn:"1/-1" }}><Empty text="سفارشی یافت نشد" icon="📋" /></div>
-            : filtered.map((o,i)=>{
+      {/* لیست — کارت موبایل / جدول دسکتاپ */}
+      {filtered.length===0
+        ? <Empty text="سفارشی یافت نشد" icon="📋" />
+        : (<>
+          {/* دسکتاپ */}
+          <div style={{ background:C.surface, borderRadius:14, border:`1px solid ${C.border}`, overflow:"hidden", display:"block" }} className="orders-desktop">
+            <div style={{ display:"grid", gridTemplateColumns:"60px 2fr 110px 90px 120px 130px 90px" }}>
+              {["#","مشتری","تاریخ","نوع","مبلغ","وضعیت",""].map((h,i)=>(
+                <div key={i} style={{ padding:"10px 14px", fontSize:11, color:C.textMuted, fontWeight:700, borderBottom:`1px solid ${C.border}` }}>{h}</div>
+              ))}
+              {filtered.map((o,i)=>{
+                const cust = custMap[o.customer_id];
+                const rowBg = i%2===0?C.surface:C.surfaceAlt;
+                const brd = i<filtered.length-1?`1px solid ${C.border}`:"none";
+                return (
+                  <React.Fragment key={o.id}>
+                    <div style={{ padding:"12px 14px", fontSize:12, color:C.text, fontWeight:500, borderBottom:brd, background:rowBg, display:"flex", alignItems:"center" }}>#{fa(o.id)}</div>
+                    <div style={{ padding:"12px 14px", fontSize:13, fontWeight:600, color:C.text, borderBottom:brd, background:rowBg, display:"flex", alignItems:"center" }}>{cust?.name||o.customer_name||"—"}</div>
+                    <div style={{ padding:"12px 14px", fontSize:11, color:C.textMuted, borderBottom:brd, background:rowBg, display:"flex", alignItems:"center" }}>{o.created_at ? new Date(o.created_at).toLocaleDateString("fa-IR") : "—"}</div>
+                    <div style={{ padding:"12px 14px", borderBottom:brd, background:rowBg, display:"flex", alignItems:"center" }}>
+                      <span style={{ fontSize:11, padding:"3px 8px", borderRadius:5, background:o.order_type==="custom"?"#8B5CF622":"#06B6D422", color:o.order_type==="custom"?"#8B5CF6":C.teal }}>{o.order_type==="custom"?"سفارشی":"انبار"}</span>
+                    </div>
+                    <div style={{ padding:"12px 14px", fontSize:13, fontWeight:600, color:C.primary, borderBottom:brd, background:rowBg, display:"flex", alignItems:"center" }}>{shortCur(o.total_amount)}</div>
+                    <div style={{ padding:"12px 14px", borderBottom:brd, background:rowBg, display:"flex", alignItems:"center" }}><Tag status={o.order_status} /></div>
+                    <div style={{ padding:"8px 14px", borderBottom:brd, background:rowBg, display:"flex", alignItems:"center" }}>
+                      <Btn label="جزئیات" icon="eye" small outline onClick={() => setSelected(o)} />
+                    </div>
+                  </React.Fragment>
+                );
+              })}
+            </div>
+          </div>
+          {/* موبایل — کارت */}
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }} className="orders-mobile">
+            {filtered.map(o=>{
               const cust = custMap[o.customer_id];
               return (
-                <React.Fragment key={o.id}>
-                  <div style={{ padding:"12px 14px", fontSize:12, color:C.text, fontWeight:500, borderBottom:i<filtered.length-1?`1px solid ${C.border}`:"none", background:i%2===0?C.surface:C.surfaceAlt, display:"flex", alignItems:"center" }}>#{fa(o.id)}</div>
-                  <div style={{ padding:"12px 14px", fontSize:13, fontWeight:600, color:C.text, borderBottom:i<filtered.length-1?`1px solid ${C.border}`:"none", background:i%2===0?C.surface:C.surfaceAlt, display:"flex", alignItems:"center" }}>{cust?.name||"—"}</div>
-                  <div style={{ padding:"12px 14px", fontSize:11, color:C.textMuted, borderBottom:i<filtered.length-1?`1px solid ${C.border}`:"none", background:i%2===0?C.surface:C.surfaceAlt, display:"flex", alignItems:"center" }}>{new Date(o.created_at).toLocaleDateString("fa-IR")}</div>
-                  <div style={{ padding:"12px 14px", borderBottom:i<filtered.length-1?`1px solid ${C.border}`:"none", background:i%2===0?C.surface:C.surfaceAlt, display:"flex", alignItems:"center" }}>
-                    <span style={{ fontSize:11, padding:"3px 8px", borderRadius:5, background:o.order_type==="custom"?"#8B5CF622":"#06B6D422", color:o.order_type==="custom"?C.purple:C.teal }}>{o.order_type==="custom"?"سفارشی":"انبار"}</span>
+                <div key={o.id} style={{ background:C.surface, borderRadius:12, border:`1px solid ${C.border}`, padding:"14px 16px" }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+                    <span style={{ fontSize:13, fontWeight:700, color:C.text }}>#{fa(o.id)} — {cust?.name||o.customer_name||"—"}</span>
+                    <Tag status={o.order_status} />
                   </div>
-                  <div style={{ padding:"12px 14px", fontSize:13, fontWeight:600, color:C.primary, borderBottom:i<filtered.length-1?`1px solid ${C.border}`:"none", background:i%2===0?C.surface:C.surfaceAlt, display:"flex", alignItems:"center" }}>{shortCur(o.total_amount)}</div>
-                  <div style={{ padding:"12px 14px", borderBottom:i<filtered.length-1?`1px solid ${C.border}`:"none", background:i%2===0?C.surface:C.surfaceAlt, display:"flex", alignItems:"center" }}><Tag status={o.order_status} /></div>
-                  <div style={{ padding:"8px 14px", borderBottom:i<filtered.length-1?`1px solid ${C.border}`:"none", background:i%2===0?C.surface:C.surfaceAlt, display:"flex", alignItems:"center" }}>
-                    <Btn label="جزئیات" icon="eye" small outline onClick={() => setSelected(o)} />
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"6px 14px", marginBottom:10 }}>
+                    <div><span style={{ fontSize:10, color:C.textDim }}>تاریخ</span><div style={{ fontSize:12, color:C.text }}>{o.created_at ? new Date(o.created_at).toLocaleDateString("fa-IR") : "—"}</div></div>
+                    <div><span style={{ fontSize:10, color:C.textDim }}>نوع</span><div style={{ fontSize:12 }}><span style={{ padding:"2px 8px", borderRadius:5, background:o.order_type==="custom"?"#8B5CF622":"#06B6D422", color:o.order_type==="custom"?"#8B5CF6":C.teal, fontSize:11 }}>{o.order_type==="custom"?"سفارشی":"انبار"}</span></div></div>
+                    <div><span style={{ fontSize:10, color:C.textDim }}>مبلغ</span><div style={{ fontSize:13, fontWeight:700, color:C.primary }}>{shortCur(o.total_amount)}</div></div>
+                    <div><span style={{ fontSize:10, color:C.textDim }}>تلفن</span><div style={{ fontSize:12, color:C.text }}>{cust?.phone||"—"}</div></div>
                   </div>
-                </React.Fragment>
+                  <Btn label="مشاهده جزئیات" icon="eye" small outline full onClick={() => setSelected(o)} />
+                </div>
               );
-            })
-          }
-        </div>
-      </div>
+            })}
+          </div>
+        </>)
+      }
 
       {/* ─── مودال ثبت سفارش جدید ─── */}
       {newOrder && (
