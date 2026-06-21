@@ -2296,7 +2296,7 @@ function OrdersModule({ me, showToast }) {
             </div>
           </div>
           {/* موبایل — کارت */}
-          <div style={{ display:"flex", flexDirection:"column", gap:10 }} className="orders-mobile">
+          <div style={{ flexDirection:"column", gap:10 }} className="orders-mobile">
             {filtered.map(o=>{
               const cust = custMap[o.customer_id];
               return (
