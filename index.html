@@ -255,18 +255,20 @@ function Ic({ name, size=18, color=C.textMuted, style }) {
 
 /* ═══════════════════════════════════════ ORDER STATUS ════════════════════════════════ */
 const ORDER_STATUS = {
-  registered:        { label:"ثبت شد",                 color:"#6B7280" },
-  stock_check:       { label:"بررسی موجودی",            color:"#3B82F6" },
-  proforma_issued:   { label:"پیش‌فاکتور صادر شد",     color:"#8B5CF6" },
-  contract_pending:  { label:"در انتظار قرارداد",       color:"#F59E0B" },
-  contract_signed:   { label:"قرارداد امضا شد",         color:"#10B981" },
-  in_production:     { label:"در حال تولید",            color:"#06B6D4" },
-  pending_payment:   { label:"در انتظار پرداخت",        color:"#F59E0B" },
-  payment_confirmed: { label:"پرداخت تأیید شد",         color:"#10B981" },
-  ready_to_ship:     { label:"آماده ارسال",              color:"#8B5CF6" },
-  shipped:           { label:"ارسال شد",                color:"#3B82F6" },
-  delivered:         { label:"تحویل داده شد",            color:"#10B981" },
-  cancelled:         { label:"لغو شده",                 color:"#EF4444" },
+  registered:         { label:"ثبت شد",                  color:"#6B7280" },
+  customer_approval:  { label:"تأیید مشتری جدید",         color:"#EC4899" },
+  stock_check:        { label:"بررسی موجودی",             color:"#3B82F6" },
+  proforma_issued:    { label:"پیش‌فاکتور صادر شد",      color:"#8B5CF6" },
+  contract_pending:   { label:"در انتظار قرارداد",        color:"#F59E0B" },
+  contract_signed:    { label:"قرارداد امضا شد",          color:"#10B981" },
+  in_production:      { label:"در حال تولید",             color:"#06B6D4" },
+  pending_payment:    { label:"در انتظار پرداخت",         color:"#F59E0B" },
+  payment_confirmed:  { label:"پرداخت تأیید شد",          color:"#10B981" },
+  ready_to_ship:      { label:"آماده ارسال",               color:"#8B5CF6" },
+  exit_approval:      { label:"تأیید خروج کالا",          color:"#F97316" },
+  shipped:            { label:"ارسال شد",                 color:"#3B82F6" },
+  delivered:          { label:"تحویل داده شد",             color:"#10B981" },
+  cancelled:          { label:"لغو شده",                  color:"#EF4444" },
 };
 
 /* قیمت‌گذاری بر اساس حجم سفارش */
@@ -1201,7 +1203,7 @@ function FinancialModule({ me, showToast }) {
 
 /* ═══════════════════════════════════════ CRM MODULE ═════════════════════════════════ */
 const EMPTY_CUST = {
-  name:"", legal_type:"individual", grade:"standard", national_id:"",
+  name:"", legal_type:"individual", grade:"standard", customer_status:"active", national_id:"",
   company_national_id:"", economic_code:"", ceo_name:"", phone:"", email:"",
   whatsapp:"", eitaa_id:"", province:"", city:"", address:"", postal_code:"",
   bank_name:"", bank_account:"", sheba:"", payment_terms:"نقد", credit_limit:0,
@@ -1259,6 +1261,13 @@ function CustomerForm({ customer, onSave, onCancel, showToast }) {
           <select style={{ ...iStyle, cursor:"pointer" }} value={form.grade} onChange={e=>upd("grade",e.target.value)}>
             <option value="standard">معمولی</option><option value="silver">نقره‌ای</option>
             <option value="gold">طلایی</option><option value="vip">VIP</option>
+          </select>
+        </Fld>
+        <Fld label="وضعیت مشتری">
+          <select style={{ ...iStyle, cursor:"pointer" }} value={form.customer_status||"active"} onChange={e=>upd("customer_status",e.target.value)}>
+            <option value="active">فعال</option>
+            <option value="new">جدید (نیاز به تأیید)</option>
+            <option value="suspended">تعلیق</option>
           </select>
         </Fld>
         <Fld label="شرایط پرداخت">
@@ -1336,36 +1345,45 @@ function OrderDetail({ order, customer, me, showToast, onUpdate, onClose }) {
   },[]);
 
   /* ── چرخه هوشمند بر اساس نوع سفارش و اعتبار مشتری ── */
-  const getNextAction = (status, type, credit) => {
+  const getNextAction = (status, type, credit, custStatus) => {
+    const isNew = custStatus === "new";
     const STOCK = {
-      registered:        { label:"شروع بررسی موجودی",       next:"stock_check" },
-      stock_check:       { label:"صدور پیش‌فاکتور",         next:"proforma_issued" },
-      proforma_issued:   credit
-        ? { label:"تأیید — ارسال (اعتباری)",               next:"ready_to_ship" }
-        : { label:"ثبت درخواست پرداخت",                    next:"pending_payment" },
-      pending_payment:   { label:"تأیید پرداخت",            next:"payment_confirmed" },
-      payment_confirmed: { label:"آماده ارسال",              next:"ready_to_ship" },
-      ready_to_ship:     { label:"ثبت کد رهگیری و ارسال",   next:"shipped" },
-      shipped:           { label:"تأیید تحویل",              next:"delivered" },
+      registered:         isNew
+        ? { label:"ارجاع به تأیید مشتری جدید",              next:"customer_approval", assignedTo:"کریملو" }
+        : { label:"شروع بررسی موجودی",                       next:"stock_check" },
+      customer_approval:  { label:"تأیید مشتری — شروع بررسی موجودی", next:"stock_check" },
+      stock_check:        { label:"صدور پیش‌فاکتور",          next:"proforma_issued" },
+      proforma_issued:    credit
+        ? { label:"تأیید — آماده ارسال (اعتباری)",           next:"ready_to_ship" }
+        : { label:"ثبت درخواست پرداخت",                      next:"pending_payment" },
+      pending_payment:    { label:"تأیید پرداخت",             next:"payment_confirmed" },
+      payment_confirmed:  { label:"آماده ارسال",               next:"ready_to_ship" },
+      ready_to_ship:      { label:"ارجاع به تأیید خروج کالا", next:"exit_approval", assignedTo:"سراج‌الدینی", sla:60 },
+      exit_approval:      { label:"تأیید خروج و ثبت ارسال",   next:"shipped" },
+      shipped:            { label:"تأیید تحویل",               next:"delivered" },
     };
     const CUSTOM = {
-      registered:        { label:"شروع بررسی",              next:"stock_check" },
-      stock_check:       { label:"صدور پیش‌فاکتور",         next:"proforma_issued" },
-      proforma_issued:   { label:"ارجاع به انعقاد قرارداد", next:"contract_pending" },
-      contract_pending:  { label:"تأیید امضای قرارداد",     next:"contract_signed" },
-      contract_signed:   { label:"ارجاع به واحد تولید",     next:"in_production" },
-      in_production:     credit
-        ? { label:"پایان تولید — ارسال (اعتباری)",         next:"ready_to_ship" }
-        : { label:"پایان تولید — درخواست پرداخت",          next:"pending_payment" },
-      pending_payment:   { label:"تأیید پرداخت",            next:"payment_confirmed" },
-      payment_confirmed: { label:"آماده ارسال",              next:"ready_to_ship" },
-      ready_to_ship:     { label:"ثبت کد رهگیری و ارسال",   next:"shipped" },
-      shipped:           { label:"تأیید تحویل",              next:"delivered" },
+      registered:         isNew
+        ? { label:"ارجاع به تأیید مشتری جدید",              next:"customer_approval", assignedTo:"کریملو" }
+        : { label:"شروع بررسی",                              next:"stock_check" },
+      customer_approval:  { label:"تأیید مشتری — شروع بررسی", next:"stock_check" },
+      stock_check:        { label:"صدور پیش‌فاکتور",          next:"proforma_issued" },
+      proforma_issued:    { label:"ارجاع به انعقاد قرارداد",  next:"contract_pending" },
+      contract_pending:   { label:"تأیید امضای قرارداد",      next:"contract_signed" },
+      contract_signed:    { label:"ارجاع به واحد تولید",      next:"in_production" },
+      in_production:      credit
+        ? { label:"پایان تولید — ارسال (اعتباری)",           next:"ready_to_ship" }
+        : { label:"پایان تولید — درخواست پرداخت",            next:"pending_payment" },
+      pending_payment:    { label:"تأیید پرداخت",             next:"payment_confirmed" },
+      payment_confirmed:  { label:"آماده ارسال",               next:"ready_to_ship" },
+      ready_to_ship:      { label:"ارجاع به تأیید خروج کالا", next:"exit_approval", assignedTo:"سراج‌الدینی", sla:60 },
+      exit_approval:      { label:"تأیید خروج و ثبت ارسال",   next:"shipped" },
+      shipped:            { label:"تأیید تحویل",               next:"delivered" },
     };
     return (type==="custom" ? CUSTOM : STOCK)[status];
   };
 
-  const act = getNextAction(order.order_status, orderType, creditAllowed);
+  const act = getNextAction(order.order_status, orderType, creditAllowed, customer?.customer_status);
 
   const changeStatus = async (next) => {
     if (next==="shipped" && !trackCode) { showToast("کد رهگیری را وارد کنید","error"); return; }
@@ -1410,6 +1428,26 @@ function OrderDetail({ order, customer, me, showToast, onUpdate, onClose }) {
         <div style={{ padding:14, background:C.surfaceAlt, borderRadius:10 }}>
           <p style={{ fontSize:11, color:C.textMuted, marginBottom:5, fontWeight:600 }}>وضعیت</p>
           <Tag status={order.order_status} />
+          {order.order_status==="exit_approval" && (() => {
+            const entered = log.find(l=>l.to_status==="exit_approval");
+            if (!entered) return null;
+            const elapsedMin = Math.floor((Date.now()-new Date(entered.created_at))/60000);
+            const remaining = 60 - elapsedMin;
+            const over = remaining < 0;
+            return (
+              <div style={{ marginTop:6, padding:"3px 8px", borderRadius:5, fontSize:11, fontWeight:600,
+                background: over?"#EF444420":"#F9731620",
+                color: over?"#EF4444":"#F97316" }}>
+                {over ? `⚠ ${fa(Math.abs(remaining))} دقیقه تأخیر` : `⏱ SLA: ${fa(remaining)} دقیقه مانده`}
+              </div>
+            );
+          })()}
+          {order.order_status==="customer_approval" && (
+            <div style={{ marginTop:6, padding:"3px 8px", borderRadius:5, fontSize:11, fontWeight:600,
+              background:"#EC489920", color:"#EC4899" }}>
+              👤 مسئول: کریملو
+            </div>
+          )}
         </div>
         <div style={{ padding:14, background:C.surfaceAlt, borderRadius:10 }}>
           <p style={{ fontSize:11, color:C.textMuted, marginBottom:5, fontWeight:600 }}>نوع سفارش</p>
@@ -1532,6 +1570,15 @@ function OrderDetail({ order, customer, me, showToast, onUpdate, onClose }) {
           <Fld label="یادداشت (اختیاری)">
             <textarea style={{ ...iStyle, resize:"none" }} rows={2} value={note} onChange={e=>setNote(e.target.value)} />
           </Fld>
+          {act.assignedTo && (
+            <div style={{ padding:"8px 12px", borderRadius:8, marginBottom:8,
+              background: act.sla ? "#F9731610" : "#EC489910",
+              border:`1px solid ${act.sla?"#F9731640":"#EC489940"}`,
+              fontSize:12, color:C.text, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+              <span>👤 مسئول این مرحله: <b style={{ color: act.sla?"#F97316":"#EC4899" }}>{act.assignedTo}</b></span>
+              {act.sla && <span style={{ fontSize:11, color:"#F97316" }}>⏱ SLA: {fa(act.sla)} دقیقه</span>}
+            </div>
+          )}
           <Btn label={saving?"...":act.label} full icon="check" onClick={() => changeStatus(act.next)} disabled={saving} />
           {order.order_status !== "cancelled" && order.order_status !== "delivered" && (
             <div style={{ marginTop:8 }}>
@@ -1611,6 +1658,8 @@ function CRMModule({ me, showToast }) {
 
   const gradeLabel = g => ({ standard:"معمولی", silver:"نقره‌ای", gold:"طلایی", vip:"VIP" }[g]||g);
   const gradeColor = g => ({ standard:C.textMuted, silver:"#9CA3AF", gold:"#F59E0B", vip:"#8B5CF6" }[g]||C.textMuted);
+  const custStatusLabel = s => ({ active:"فعال", new:"جدید", suspended:"تعلیق" }[s]||s);
+  const custStatusColor = s => ({ active:"#10B981", new:"#EC4899", suspended:"#EF4444" }[s]||C.textMuted);
 
   return (
     <div style={{ animation:"fadeUp 0.3s ease" }}>
@@ -1647,9 +1696,12 @@ function CRMModule({ me, showToast }) {
               display:"flex", justifyContent:"space-between", alignItems:"center", gap:12
             }}>
               <div style={{ flex:1 }}>
-                <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:5 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:5, flexWrap:"wrap" }}>
                   <p style={{ fontSize:14, fontWeight:600, color:C.text }}>{c.name}</p>
                   <span style={{ fontSize:10, padding:"2px 7px", borderRadius:4, background:gradeColor(c.grade)+"20", color:gradeColor(c.grade), fontWeight:600 }}>{gradeLabel(c.grade)}</span>
+                  {c.customer_status && c.customer_status!=="active" && (
+                    <span style={{ fontSize:10, padding:"2px 7px", borderRadius:4, background:custStatusColor(c.customer_status)+"20", color:custStatusColor(c.customer_status), fontWeight:600 }}>{custStatusLabel(c.customer_status)}</span>
+                  )}
                   {c.portal_active && <span style={{ fontSize:10, padding:"2px 7px", borderRadius:4, background:C.infoDim, color:C.info, fontWeight:600 }}>پورتال</span>}
                 </div>
                 <p style={{ fontSize:12, color:C.textMuted }}>
