@@ -3265,15 +3265,20 @@ const CLAIM_REASONS = [
 ];
 
 function GuaranteeModule({ me, showToast }) {
-  const [claims,    setClaims]    = useState([]);
-  const [customers, setCustomers] = useState([]);
-  const [orders,    setOrders]    = useState([]);
-  const [products,  setProducts]  = useState([]);
-  const [loading,   setLoading]   = useState(true);
-  const [form,      setForm]      = useState(null);
-  const [saving,    setSaving]    = useState(false);
-  const [stFilter,  setStFilter]  = useState("all");
-  const [search,    setSearch]    = useState("");
+  const [claims,       setClaims]       = useState([]);
+  const [warrantyReqs, setWarrantyReqs] = useState([]);
+  const [tab,          setTab]          = useState("public");
+  const [customers,    setCustomers]    = useState([]);
+  const [orders,       setOrders]       = useState([]);
+  const [products,     setProducts]     = useState([]);
+  const [loading,      setLoading]      = useState(true);
+  const [form,         setForm]         = useState(null);
+  const [saving,       setSaving]       = useState(false);
+  const [stFilter,     setStFilter]     = useState("all");
+  const [search,       setSearch]       = useState("");
+  const [wSearch,      setWSearch]      = useState("");
+  const [wStatus,      setWStatus]      = useState("all");
+  const [wDetail,      setWDetail]      = useState(null);
 
   var load = async function() {
     setLoading(true);
@@ -3283,11 +3288,13 @@ function GuaranteeModule({ me, showToast }) {
         api("GET","crm_customers?select=id,name,phone,city"),
         api("GET","crm_orders?select=id,customer_id,created_at,order_status&order=created_at.desc"),
         api("GET","products?select=id,name,has_guarantee,guarantee_days&order=name.asc"),
+        api("GET","warranty_requests?order=created_at.desc").catch(function(){return [];}),
       ]);
       setClaims(res[0]||[]);
       setCustomers(res[1]||[]);
       setOrders(res[2]||[]);
       setProducts(res[3]||[]);
+      setWarrantyReqs(res[4]||[]);
     } catch(e) { showToast("خطا در بارگذاری","error"); }
     finally { setLoading(false); }
   };
@@ -3374,21 +3381,104 @@ function GuaranteeModule({ me, showToast }) {
 
   var custOrders = form ? orders.filter(function(o){ return String(o.customer_id)===String(form.customer_id); }) : [];
 
+  var wFiltered = warrantyReqs.filter(function(r) {
+    if (wStatus !== "all" && r.status !== wStatus) return false;
+    if (wSearch) {
+      var s = wSearch.toLowerCase();
+      return (r.full_name||"").includes(wSearch) || (r.mobile||"").includes(wSearch) || (r.address||"").includes(wSearch);
+    }
+    return true;
+  });
+
+  var updateWarrantyStatus = async function(id, status) {
+    try {
+      await api("PATCH","warranty_requests?id=eq."+id, { status:status });
+      showToast("وضعیت بروز شد");
+      load();
+    } catch(e) { showToast("خطا","error"); }
+  };
+
   if (loading) return <Spinner />;
 
   return (
     <div style={{ animation:"fadeUp 0.3s ease" }}>
       {/* هدر */}
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16, flexWrap:"wrap", gap:10 }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12, flexWrap:"wrap", gap:10 }}>
         <div>
           <h2 style={{ fontSize:20, color:C.text, fontWeight:600, marginBottom:2 }}>مرجوعی و گارانتی</h2>
           <p style={{ fontSize:12, color:C.textDim }}>مدیریت درخواست‌های بازگشت وجه</p>
         </div>
         <div style={{ display:"flex", gap:8 }}>
           <Btn label="خروجی CSV" icon="download" small outline onClick={exportCSV} />
-          <Btn label="درخواست جدید" icon="plus" onClick={function(){setForm({customer_id:"",order_id:"",product_id:"",reason:"",claim_date:"",delivery_date:"",refund_amount:0,notes:""});}} />
+          {tab==="internal" && <Btn label="درخواست جدید" icon="plus" onClick={function(){setForm({customer_id:"",order_id:"",product_id:"",reason:"",claim_date:"",delivery_date:"",refund_amount:0,notes:""});}} />}
         </div>
       </div>
+
+      {/* تب‌ها */}
+      <div style={{ display:"flex", gap:4, marginBottom:16, background:C.surfaceAlt, borderRadius:10, padding:4 }}>
+        <button onClick={function(){setTab("public");}} style={{ flex:1, padding:"8px 12px", borderRadius:7, border:"none", background:tab==="public"?C.surface:"transparent", color:tab==="public"?C.text:C.textDim, fontFamily:FF, fontSize:13, fontWeight:600, cursor:"pointer", transition:"all 0.2s" }}>
+          {"🌐 گارانتی عمومی ("+fa(warrantyReqs.length)+")"}
+        </button>
+        <button onClick={function(){setTab("internal");}} style={{ flex:1, padding:"8px 12px", borderRadius:7, border:"none", background:tab==="internal"?C.surface:"transparent", color:tab==="internal"?C.text:C.textDim, fontFamily:FF, fontSize:13, fontWeight:600, cursor:"pointer", transition:"all 0.2s" }}>
+          {"🏢 مرجوعی داخلی ("+fa(claims.length)+")"}
+        </button>
+      </div>
+
+      {/* ───── تب گارانتی عمومی ───── */}
+      {tab==="public" && (
+        <div>
+          <div style={{ display:"flex", gap:8, marginBottom:14, alignItems:"center", flexWrap:"wrap" }}>
+            <input style={{ ...iStyle, flex:1, minWidth:180 }} value={wSearch} onChange={function(e){setWSearch(e.target.value);}} placeholder="جستجو نام، موبایل یا آدرس..." />
+            <select style={{ ...iStyle, width:"auto" }} value={wStatus} onChange={function(e){setWStatus(e.target.value);}}>
+              <option value="all">همه وضعیت‌ها</option>
+              <option value="pending">در انتظار بررسی</option>
+              <option value="reviewing">در حال بررسی</option>
+              <option value="approved">تأیید شده</option>
+              <option value="rejected">رد شده</option>
+              <option value="done">انجام شد</option>
+            </select>
+            <span style={{ fontSize:11, color:C.textDim, whiteSpace:"nowrap" }}>{fa(wFiltered.length)} درخواست</span>
+          </div>
+          {wFiltered.length===0 ? <Empty text="درخواست گارانتی‌ای ثبت نشده" icon="🛡️" /> : (
+            <div style={{ display:"grid", gap:10 }}>
+              {wFiltered.map(function(r) {
+                var st = {pending:{label:"در انتظار",color:"#F59E0B"},reviewing:{label:"در بررسی",color:"#3B82F6"},approved:{label:"تأیید",color:"#10B981"},rejected:{label:"رد شده",color:"#EF4444"},done:{label:"انجام شد",color:"#8B5CF6"}}[r.status]||{label:r.status,color:C.textDim};
+                return (
+                  <div key={r.id} style={{ background:C.surface, borderRadius:12, border:"1px solid "+C.border, borderRight:"3px solid "+st.color, padding:16 }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8 }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
+                        <span style={{ fontSize:12, color:C.textDim }}>{"#"+fa(r.id)}</span>
+                        <span style={{ fontSize:14, fontWeight:700, color:C.text }}>{r.full_name}</span>
+                        <span style={{ fontSize:11, padding:"2px 8px", borderRadius:5, background:st.color+"20", color:st.color, fontWeight:600 }}>{st.label}</span>
+                      </div>
+                      <span style={{ fontSize:11, color:C.textDim }}>{r.created_at?new Date(r.created_at).toLocaleDateString("fa-IR"):""}</span>
+                    </div>
+                    <div style={{ display:"flex", gap:16, fontSize:12, color:C.textDim, marginBottom:8, flexWrap:"wrap" }}>
+                      <span>{"📱 "+r.mobile}</span>
+                      <span>{"📍 "+r.address}</span>
+                      <span>{"🗓️ تاریخ خرید: "+r.purchase_date}</span>
+                    </div>
+                    <div style={{ fontSize:13, color:C.text, background:C.surfaceAlt, borderRadius:8, padding:"8px 12px", marginBottom:8 }}>{r.description}</div>
+                    {r.status==="pending" && (
+                      <div style={{ display:"flex", gap:8, marginTop:8 }}>
+                        <Btn label="تأیید" small onClick={function(){updateWarrantyStatus(r.id,"approved");}} />
+                        <Btn label="در بررسی" small outline onClick={function(){updateWarrantyStatus(r.id,"reviewing");}} />
+                        <Btn label="رد کردن" small danger onClick={function(){updateWarrantyStatus(r.id,"rejected");}} />
+                      </div>
+                    )}
+                    {r.status==="approved" && (
+                      <Btn label="انجام شد — مبلغ بازگشت داده شد" small icon="check" onClick={function(){updateWarrantyStatus(r.id,"done");}} />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ───── تب مرجوعی داخلی ───── */}
+      {tab==="internal" && (<div>
 
       {/* کارت‌های خلاصه */}
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))", gap:10, marginBottom:16 }}>
@@ -3459,6 +3549,8 @@ function GuaranteeModule({ me, showToast }) {
           })}
         </div>
       )}
+
+      </div>)}
 
       {/* مودال ثبت درخواست */}
       {form && (
