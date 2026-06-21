@@ -1305,6 +1305,13 @@ function CustomerForm({ customer, onSave, onCancel, showToast }) {
           دسترسی پورتال فعال باشد
         </label>
       </div>
+      <Fld label="وضعیت مشتری">
+        <select style={{ ...iStyle, cursor:"pointer" }} value={form.customer_status||"active"} onChange={e=>upd("customer_status",e.target.value)}>
+          <option value="active">فعال</option>
+          <option value="new">جدید (نیاز به تأیید)</option>
+          <option value="suspended">تعلیق</option>
+        </select>
+      </Fld>
       <Fld label="یادداشت داخلی">
         <textarea style={{ ...iStyle, resize:"none" }} rows={2} value={form.internal_note||""} onChange={e=>upd("internal_note",e.target.value)} />
       </Fld>
@@ -1577,6 +1584,12 @@ function OrderDetail({ order, customer, me, showToast, onUpdate, onClose }) {
               border:`1px solid ${act.sla?"#F9731640":"#EC489940"}`,
               fontSize:12, color:C.text, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
               <span>👤 مسئول این مرحله: <b style={{ color: act.sla?"#F97316":"#EC4899" }}>{act.assignedTo}</b></span>
+              {act.sla && <span style={{ fontSize:11, color:"#F97316" }}>⏱ SLA: {fa(act.sla)} دقیقه</span>}
+            </div>
+          )}
+          {act.assignedTo && (
+            <div style={{ padding:"8px 12px", borderRadius:8, marginBottom:8, background:act.sla?"#F9731610":"#EC489910", border:"1px solid "+(act.sla?"#F9731640":"#EC489940"), fontSize:12, color:C.text, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+              <span>👤 مسئول: <b style={{ color:act.sla?"#F97316":"#EC4899" }}>{act.assignedTo}</b></span>
               {act.sla && <span style={{ fontSize:11, color:"#F97316" }}>⏱ SLA: {fa(act.sla)} دقیقه</span>}
             </div>
           )}
